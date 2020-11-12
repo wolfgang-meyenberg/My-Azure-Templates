@@ -1,0 +1,313 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Landscape": {
+            "type": "string",
+            "maxLength": "3",
+            "metadata":{
+                "description":"identifies all resources in this testbed"
+            }
+        },
+        "Location": {
+            "defaultValue": "westeurope",
+            "type": "string"
+        },
+        "Location Code": {
+            "defaultValue": "euw",
+            "type": "string"
+        },
+        "VNet": {
+            "defaultValue": "MyVNet",
+            "type": "string"
+        },
+        "Subnet": {
+            "defaultValue": "sub1",
+            "type": "String"
+        },
+        "storage account": {
+            "defaultValue": "mystor1",
+            "type": "string"
+        },
+        "bastion host": {
+            "defaultValue": "ba001",
+            "type": "string"
+        },
+        "Bastion Public IP Name": {
+            "defaultValue": "ba001-1",
+            "type": "string"
+        }
+    },
+    "variables":{
+        "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape'),parameters('VNet'))]",
+        "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
+        "security group for subnet 0": "[concat(parameters('Location Code'),'-nsg-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
+        "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape'),parameters('Storage Account'))]",
+        "bastion host name": "[concat(parameters('Location Code'),'-vmsw-',parameters('Landscape'),parameters('Bastion Host'))]",
+        "bastion host public IP address name": "[concat(parameters('Location Code'),'-pip-',parameters('Landscape'),parameters('Bastion Public IP Name'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('security group for subnet 0')]",
+            "location": "[parameters('Location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Ping",
+                        "properties": {
+                            "protocol": "ICMP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('bastion host public IP address name')]",
+            "location": "[parameters('Location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static",
+                "idleTimeoutInMinutes": 4,
+                "ipTags": []
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storage account name')]",
+            "location": "[parameters('Location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+            "apiVersion": "2020-04-01",
+            "name": "[concat(variables('security group for subnet 0'),'/Ping')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('security group for subnet 0'))]"
+            ],
+            "properties": {
+                "protocol": "ICMP",
+                "sourcePortRange": "*",
+                "destinationPortRange": "*",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 100,
+                "direction": "Inbound",
+                "sourcePortRanges": [],
+                "destinationPortRanges": [],
+                "sourceAddressPrefixes": [],
+                "destinationAddressPrefixes": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('VNet name')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "ServiceID": "n/a",
+                "DeliveryStatus": "initial",
+                "Billable": "no"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('security group for subnet 0'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "dhcpOptions": {
+                    "dnsServers": [
+                        "10.0.0.4",
+                        "8.8.8.8"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "AzureBastionSubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.254.0/24",
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    },
+                    {
+                        "name": "[variables('Subnet name')]",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('security group for subnet 0'))]"
+                            },
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Sql",
+                                    "locations": [
+                                        "westeurope"
+                                    ]
+                                }
+                            ],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-04-01",
+            "name": "[concat(variables('VNet Name'),'/AzureBastionSubnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
+            ],
+            "properties": {
+                "addressPrefix": "10.0.254.0/24",
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Enabled",
+                "privateLinkServiceNetworkPolicies": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storage account name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storage account name'))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                },
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storage account name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storage account name'))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/bastionHosts",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('bastion host name')]",
+            "location": "[parameters('Location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastion host public IP address name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), 'AzureBastionSubnet')]"
+            ],
+            "properties": {
+                "dnsName": "bst-14b87924-ea0d-4005-b265-9b22040d77d9.bastion.azure.com",
+                "ipConfigurations": [
+                    {
+                        "name": "IpConf",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastion host public IP address name'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), 'AzureBastionSubnet')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storage account name'), '/default/bootdiagnostics-1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storage account name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storage account name'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('storage account name'), '/default/wamscripts')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storage account name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storage account name'))]"
+            ],
+            "properties": {
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "Blob"
+            }
+        }
+    ]
+}

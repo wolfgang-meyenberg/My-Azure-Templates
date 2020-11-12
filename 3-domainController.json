@@ -1,0 +1,185 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Landscape": {
+            "type": "string",
+            "maxLength": "3",
+            "metadata":{
+                "description":"identifies all resources in this testbed"
+            }
+        },
+        "Location": {
+            "defaultValue": "westeurope",
+            "type": "string"
+        },
+        "Location Code": {
+            "defaultValue": "euw",
+            "type": "string"
+        },
+        "domain admin": {
+            "defaultValue": "domainadmin",
+            "type": "String"
+        },
+        "domain admin pwd": {
+			"defaultValue": "Ln7r#WcDJtRhARQg",
+            "type": "SecureString"
+        },
+        "DC VM name": {
+            "defaultValue": "dc01",
+            "type": "String",
+            "maxLength": 4,
+            "metadata":{
+                "description":"last part of domain controller name, the combined length of this and the landscape ID must not exceed 7"
+            }
+        },
+        "DC IP address": {
+			"defaultValue": "10.0.0.4",
+            "type": "string"
+        },
+        "VNet": {
+            "defaultValue": "MyVNet",
+            "type": "String"
+        },
+        "Subnet": {
+            "defaultValue": "sub1",
+            "type": "String"
+        },
+        "domain controller network interface": {
+            "defaultValue": "1",
+            "type": "String"
+        },
+        "storage account": {
+            "defaultValue": "mystor1",
+            "type": "string"
+        }
+    },
+    "variables": {
+        "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape'),parameters('VNet'))]",
+        "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
+        "domain name": "[concat(parameters('Landscape'),'.local')]",
+        "DC name": "[concat(parameters('Location Code'),'-vmdw',parameters('Landscape'),parameters('DC VM name'))]",
+        "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('DC VM name'),parameters('domain controller network interface'))]",
+        "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape'),parameters('Storage Account'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(variables('DC name'),'/installDcPromoScript')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "dependsOn": [
+                "[variables('DC name')]"
+            ],
+            "apiVersion": "2019-12-01",
+            "location": "[parameters('Location')]",
+            "properties": {
+            "type": "CustomScriptExtension",
+            "publisher": "Microsoft.Compute",
+            "typeHandlerVersion": "1.10",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+                "fileUris": [
+                    "[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
+                ],
+                "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('domain controller network interface name')]",
+            "location": "[parameters('Location')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "[parameters('DC IP address')]",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), variables('Subnet name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[variables('DC name')]",
+            "location": "[parameters('Location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('domain controller network interface name'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "name": "[concat(variables('DC name'), '_OsDisk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"						
+                        },
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(variables('DC name'), '_DataDisk_0')]",
+                            "createOption": "Empty",
+                            "caching": "ReadOnly",
+                            "writeAcceleratorEnabled": false,
+                            "managedDisk": {
+                                "storageAccountType": "Standard_LRS"
+                            },
+                            "diskSizeGB": 32,
+                            "toBeDetached": false
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('DC name')]",
+                    "AdminUsername": "[parameters('domain admin')]",
+                    "AdminPassword": "[parameters('domain admin pwd')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('domain controller network interface name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https://', variables('storage account name'), '.blob.core.windows.net/')]"
+                    }
+                }
+            }
+        }
+    ]
+}
