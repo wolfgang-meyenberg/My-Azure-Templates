@@ -22,7 +22,6 @@
             "type": "String"
         },
         "domain admin pwd": {
-			"defaultValue": "Ln7r#WcDJtRhARQg",
             "type": "SecureString"
         },
         "DC VM name": {

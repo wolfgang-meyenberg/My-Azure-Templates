@@ -22,7 +22,6 @@
             "type": "String"
         },
         "local admin pwd": {
-			"defaultValue": "Ln7r#WcDJtRhARQg",
             "type": "SecureString"
         },
         "domain admin": {
@@ -30,7 +29,6 @@
             "type": "String"
         },
         "domain admin pwd": {
-			"defaultValue": "Ln7r#WcDJtRhARQg",
             "type": "SecureString"
         },
         "App server VM name": {
