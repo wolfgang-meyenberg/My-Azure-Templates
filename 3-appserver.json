@@ -1,10 +1,11 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "Landscape": {
+            "defaultValue": "wam",
             "type": "string",
-            "maxLength": "3",
+            "maxLength": 3,
             "metadata":{
                 "description":"identifies all resources in this testbed"
             }
@@ -17,24 +18,29 @@
             "defaultValue": "euw",
             "type": "string"
         },
+        "local admin": {
+            "defaultValue": "localadmin",
+            "type": "String"
+        },
+        "local admin pwd": {
+			"defaultValue": "Ln7r#WcDJtRhARQg",
+            "type": "SecureString"
+        },
         "domain admin": {
             "defaultValue": "domainadmin",
             "type": "String"
         },
         "domain admin pwd": {
+			"defaultValue": "Ln7r#WcDJtRhARQg",
             "type": "SecureString"
         },
-        "DC VM name": {
-            "defaultValue": "dc01",
+        "App server VM name": {
+            "defaultValue": "ap1",
             "type": "String",
             "maxLength": 4,
             "metadata":{
-                "description":"last part of domain controller name, the combined length of this and the landscape ID must not exceed 7"
+                "description":"last part of VM name, the combined length of this and the landscape ID must not exceed 7"
             }
-        },
-        "DC IP address": {
-			"defaultValue": "10.0.0.4",
-            "type": "string"
         },
         "VNet": {
             "defaultValue": "MyVNet",
@@ -44,29 +50,29 @@
             "defaultValue": "sub1",
             "type": "String"
         },
-        "domain controller network interface": {
+        "app server network interface": {
             "defaultValue": "1",
             "type": "String"
         },
         "storage account": {
             "defaultValue": "mystor1",
-            "type": "string"
+            "type": "String"
         }
     },
     "variables": {
         "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape'),parameters('VNet'))]",
         "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
         "domain name": "[concat(parameters('Landscape'),'.local')]",
-        "DC name": "[concat(parameters('Location Code'),'-vmdw',parameters('Landscape'),parameters('DC VM name'))]",
-        "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('DC VM name'),parameters('domain controller network interface'))]",
+        "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape'),parameters('App Server VM name'))]",
+        "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('App Server VM name'),parameters('app server network interface'))]",
         "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape'),parameters('Storage Account'))]"
     },
     "resources": [
         {
-            "name": "[concat(variables('DC name'),'/installDcPromoScript')]",
+            "name": "[concat(variables('VM name'),'/JoinDomainScript')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "dependsOn": [
-                "[variables('DC name')]"
+                "[variables('VM name')]"
             ],
             "apiVersion": "2019-12-01",
             "location": "[parameters('Location')]",
@@ -77,26 +83,25 @@
             "autoUpgradeMinorVersion": true,
             "settings": {
                 "fileUris": [
-                    "[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
+                    "[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DomainMemberBaseConfig.ps1')]"
                 ],
-                "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DomainMemberBaseConfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
         },
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2020-04-01",
-            "name": "[variables('domain controller network interface name')]",
+            "name": "[variables('app server network interface name')]",
             "location": "[parameters('Location')]",
             "properties": {
                 "ipConfigurations": [
                     {
                         "name": "ipconfig1",
                         "properties": {
-                            "privateIPAddress": "[parameters('DC IP address')]",
-                            "privateIPAllocationMethod": "Static",
+                            "privateIPAllocationMethod": "Dynamic",
                             "subnet": {
-                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), variables('Subnet name'))]"
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',  variables('VNet name'), variables('Subnet name'))]"
                             },
                             "primary": true,
                             "privateIPAddressVersion": "IPv4"
@@ -113,10 +118,10 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-07-01",
-            "name": "[variables('DC name')]",
+            "name": "[variables('VM name')]",
             "location": "[parameters('Location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', variables('domain controller network interface name'))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('app server network interface name'))]"
             ],
             "properties": {
                 "hardwareProfile": {
@@ -131,7 +136,7 @@
                     },
                     "osDisk": {
                         "osType": "Windows",
-                        "name": "[concat(variables('DC name'), '_OsDisk')]",
+                        "name": "[concat(variables('VM name'), '_OsDisk')]",
                         "createOption": "FromImage",
                         "caching": "ReadWrite",
                         "managedDisk": {
@@ -142,7 +147,7 @@
                     "dataDisks": [
                         {
                             "lun": 0,
-                            "name": "[concat(variables('DC name'), '_DataDisk_0')]",
+                            "name": "[concat(variables('VM name'), '_DataDisk_0')]",
                             "createOption": "Empty",
                             "caching": "ReadOnly",
                             "writeAcceleratorEnabled": false,
@@ -155,9 +160,9 @@
                     ]
                 },
                 "osProfile": {
-                    "computerName": "[variables('DC name')]",
-                    "AdminUsername": "[parameters('domain admin')]",
-                    "AdminPassword": "[parameters('domain admin pwd')]",
+                    "computerName": "[variables('VM name')]",
+                    "AdminUsername": "[parameters('local admin')]",
+					"AdminPassword": "[parameters('local admin pwd')]",
                     "windowsConfiguration": {
                         "provisionVMAgent": true,
                         "enableAutomaticUpdates": true
@@ -168,7 +173,7 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('domain controller network interface name'))]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('app server network interface name'))]"
                         }
                     ]
                 },
