@@ -1,5 +1,5 @@
 # script parameters:
-#   0   Admin account name (we don't actually use that in this script, but so the paramer lst is the same as for domain members)
+#   0   Admin account name (we don't actually use that in this script, but so the paramer list is the same as for domain members)
 #   1   Admin account password
 #   2   Domain Name
 
