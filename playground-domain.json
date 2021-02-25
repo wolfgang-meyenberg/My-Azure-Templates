@@ -352,8 +352,10 @@
             "autoUpgradeMinorVersion": true,
             "settings": {
                 "fileUris": [
-                    "[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
+                    //"[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
+                    "https://github.com/wolfgang-meyenberg/My-Azure-Templates/blob/main/DcBaseconfig.ps1"
                 ],
+                //"commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
