@@ -346,17 +346,19 @@
             "apiVersion": "2019-07-01",
             "location": "[parameters('Location')]",
             "properties": {
-            "type": "CustomScriptExtension",
-            "publisher": "Microsoft.Compute",
-            "typeHandlerVersion": "1.10",
-            "autoUpgradeMinorVersion": true,
-            "settings": {
-                "fileUris": [
-                    //"[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
-                    "https://github.com/wolfgang-meyenberg/My-Azure-Templates/blob/main/DcBaseconfig.ps1"
-                ],
-                //"commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
-                "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                "type": "CustomScriptExtension",
+                "publisher": "Microsoft.Compute",
+                "typeHandlerVersion": "1.10",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        //"[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DcBaseconfig.ps1')]"
+                        "https://github.com/wolfgang-meyenberg/My-Azure-Templates/blob/main/DcBaseconfig.ps1"
+                    ],
+                },
+                "protectedSettings": {
+                    //"commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
         },
@@ -365,6 +367,9 @@
             "apiVersion": "2020-04-01",
             "name": "[variables('domain controller network interface name')]",
             "location": "[parameters('Location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
+            ],
             "properties": {
                 "ipConfigurations": [
                     {
