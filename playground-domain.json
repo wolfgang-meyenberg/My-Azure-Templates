@@ -540,7 +540,8 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkInterfaces', variables('app server network interface name'))]",
-                "[resourceId('Microsoft.Compute/virtualMachines',variables('DC name'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines',variables('DC name'))]",
+                "[resourceId('Microsoft.Compute/virtualMachines/extensions',variables('DC name'),'installDcPromoScript')]"
             ],
             "properties": {
                 "hardwareProfile": {
