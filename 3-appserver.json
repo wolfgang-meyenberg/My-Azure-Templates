@@ -74,7 +74,7 @@
             "dependsOn": [
                 "[variables('VM name')]"
             ],
-            "apiVersion": "2019-12-01",
+            "apiVersion": "2019-07-01",
             "location": "[parameters('Location')]",
             "properties": {
             "type": "CustomScriptExtension",
@@ -83,7 +83,7 @@
             "autoUpgradeMinorVersion": true,
             "settings": {
                 "fileUris": [
-                    "[concat('https://',variables('storage account name'),'.blob.core.windows.net/wamscripts/DomainMemberBaseConfig.ps1')]"
+                    "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/DomainMemberBaseConfig.ps1"
                 ],
                 "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DomainMemberBaseConfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
