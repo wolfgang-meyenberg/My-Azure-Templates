@@ -20,6 +20,9 @@ Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active S
 # don't start Server Manager at logon
 Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\ServerManager' -Name 'DoNotOpenServerManagerAtLogon' -Value 1
 
+# this is run right after the DC was deployed.
+# We may have to wait for some time until that deployment is done and the domain has been successfully created
+Start-Sleep -Seconds 60
 
 # join AD domain
 $DomJoinCreds = New-Object pscredential -ArgumentList ([pscustomobject]@{
