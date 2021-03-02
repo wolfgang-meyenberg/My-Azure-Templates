@@ -370,11 +370,11 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/DcBaseconfig.ps1"
+                        "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/dcbaseconfig.ps1"
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DcBaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file dcbaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
         },
@@ -496,11 +496,11 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/DomainMemberBaseConfig.ps1"
+                        "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/domainmemberbaseConfig.ps1"
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file DomainMemberBaseConfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
         },
