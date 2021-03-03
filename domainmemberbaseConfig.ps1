@@ -30,7 +30,13 @@ $DomJoinCreds = New-Object pscredential -ArgumentList ([pscustomobject]@{
     Password = (ConvertTo-SecureString -String $adminPwd -AsPlainText -Force)[0]
 })
 
-Add-Computer -DomainName $AdDomainName -Credential $DomJoinCreds 
+do {
+    $ev=@()
+    Add-Computer -DomainName $AdDomainName -Credential $DomJoinCreds -ErrorVariable ev
+    if ($ev.Count -ne 0) {
+        Start-Sleep -Seconds 60
+    }    
+} until ($ev.Count -eq 0)
 
 # disable firewall and allow network discovery
 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
