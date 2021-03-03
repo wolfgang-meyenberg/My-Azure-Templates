@@ -10,6 +10,13 @@
                 "description":"identifies all resources in this testbed"
             }
         },
+        "IP subnet": {
+            "defaultValue": "10.0",
+            "type": "string",
+            "metadata": {
+                "description":"first two bytes of the private subnet address"
+            }
+        },
         "Location Code": {
             "defaultValue": "euw",
             "type": "string"
@@ -54,10 +61,6 @@
             "defaultValue": "1",
             "type": "String"
         },
-        "DC IP address": {
-			"defaultValue": "10.0.0.4",
-            "type": "string"
-        },
         "App server VM name": {
             "defaultValue": "ap1",
             "type": "String",
@@ -85,6 +88,7 @@
         "security group for subnet 0": "[concat(parameters('Location Code'),'-nsg-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
         "domain name": "[concat(parameters('Landscape'),'.local')]",
         "DC name": "[concat(parameters('Location Code'),'-vmdw',parameters('Landscape'),parameters('DC VM name'))]",
+        "DC IP address":"[concat(parameters('IP subnet'),'.0.4')]",
         "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('DC VM name'),parameters('domain controller network interface'))]",
         "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape'),parameters('App Server VM name'))]",
         "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('App Server VM name'),parameters('app server network interface'))]",
@@ -206,12 +210,12 @@
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "10.0.0.0/16"
+                        "[concat(parameters('IP subnet','.0.0/16'))]"
                     ]
                 },
                 "dhcpOptions": {
                     "dnsServers": [
-                        "10.0.0.4",
+                        "[concat(parameters('IP subnet','.0.4'))]",
                         "8.8.8.8"
                     ]
                 },
@@ -219,7 +223,7 @@
                     {
                         "name": "AzureBastionSubnet",
                         "properties": {
-                            "addressPrefix": "10.0.254.0/24",
+                            "addressPrefix": "[concat(parameters('IP subnet','.254.0/24'))]",
                             "delegations": [],
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled"
@@ -228,7 +232,7 @@
                     {
                         "name": "[variables('Subnet name')]",
                         "properties": {
-                            "addressPrefix": "10.0.0.0/24",
+                            "addressPrefix": "[concat(parameters('IP subnet','.0.0/24'))]",
                             "networkSecurityGroup": {
                                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('security group for subnet 0'))]"
                             },
@@ -259,7 +263,7 @@
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
             ],
             "properties": {
-                "addressPrefix": "10.0.254.0/24",
+                "addressPrefix": "[concat(parameters('IP subnet','.254.0724'))]",
                 "delegations": [],
                 "privateEndpointNetworkPolicies": "Enabled",
                 "privateLinkServiceNetworkPolicies": "Enabled"
@@ -391,7 +395,7 @@
                     {
                         "name": "ipconfig1",
                         "properties": {
-                            "privateIPAddress": "[parameters('DC IP address')]",
+                            "privateIPAddress": "[variables('DC IP address')]",
                             "privateIPAllocationMethod": "Static",
                             "subnet": {
                                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), variables('Subnet name'))]"
