@@ -34,6 +34,7 @@ do {
     $ev=@()
     Add-Computer -DomainName $AdDomainName -Credential $DomJoinCreds -ErrorVariable ev
     if ($ev.Count -ne 0) {
+        "DC not yet available, waiting another 60 seconds"
         Start-Sleep -Seconds 60
     }    
 } until ($ev.Count -eq 0)
