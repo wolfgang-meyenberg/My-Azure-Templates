@@ -210,12 +210,12 @@
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "[concat(parameters('IP subnet','.0.0/16'))]"
+                        "[concat(parameters('IP subnet'),'.0.0/16')]"
                     ]
                 },
                 "dhcpOptions": {
                     "dnsServers": [
-                        "[concat(parameters('IP subnet','.0.4'))]",
+                        "[concat(parameters('IP subnet'),'.0.4')]",
                         "8.8.8.8"
                     ]
                 },
@@ -223,7 +223,7 @@
                     {
                         "name": "AzureBastionSubnet",
                         "properties": {
-                            "addressPrefix": "[concat(parameters('IP subnet','.254.0/24'))]",
+                            "addressPrefix": "[concat(parameters('IP subnet'),'.254.0/24')]",
                             "delegations": [],
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled"
@@ -232,7 +232,7 @@
                     {
                         "name": "[variables('Subnet name')]",
                         "properties": {
-                            "addressPrefix": "[concat(parameters('IP subnet','.0.0/24'))]",
+                            "addressPrefix": "[concat(parameters('IP subnet'),'.0.0/24')]",
                             "networkSecurityGroup": {
                                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('security group for subnet 0'))]"
                             },
@@ -263,7 +263,7 @@
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
             ],
             "properties": {
-                "addressPrefix": "[concat(parameters('IP subnet','.254.0724'))]",
+                "addressPrefix": "[concat(parameters('IP subnet'),'.254.0/24')]",
                 "delegations": [],
                 "privateEndpointNetworkPolicies": "Enabled",
                 "privateLinkServiceNetworkPolicies": "Enabled"
@@ -319,7 +319,7 @@
                 "dnsName": "bst-14b87924-ea0d-4005-b265-9b22040d77d9.bastion.azure.com",
                 "ipConfigurations": [
                     {
-                        "name": "IpConf",
+                        "name": "[concat(variables('bastion host name'),'-ipcfg')]",
                         "properties": {
                             "privateIPAllocationMethod": "Dynamic",
                             "publicIPAddress": {
@@ -380,36 +380,6 @@
                 "protectedSettings": {
                     "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file dcbaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
-            }
-        },
-        {
-            "type": "Microsoft.Network/networkInterfaces",
-            "apiVersion": "2020-04-01",
-            "name": "[variables('domain controller network interface name')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
-            ],
-            "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "ipconfig1",
-                        "properties": {
-                            "privateIPAddress": "[variables('DC IP address')]",
-                            "privateIPAllocationMethod": "Static",
-                            "subnet": {
-                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), variables('Subnet name'))]"
-                            },
-                            "primary": true,
-                            "privateIPAddressVersion": "IPv4"
-                        }
-                    }
-                ],
-                "dnsSettings": {
-                    "dnsServers": []
-                },
-                "enableAcceleratedNetworking": false,
-                "enableIPForwarding": false
             }
         },
         {
@@ -511,6 +481,36 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2020-04-01",
+            "name": "[variables('domain controller network interface name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(variables('domain controller network interface name'),'-ipcfg')]",
+                        "properties": {
+                            "privateIPAddress": "[variables('DC IP address')]",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet name'), variables('Subnet name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
+        },        
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-04-01",
             "name": "[variables('app server network interface name')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
@@ -519,7 +519,7 @@
             "properties": {
                 "ipConfigurations": [
                     {
-                        "name": "ipconfig1",
+                        "name": "[concat(variables('app server network interface name'),'-ipcfg')]",
                         "properties": {
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": {
