@@ -1,0 +1,77 @@
+{
+  "properties": {
+    "displayName": "Require the tags which are mandated by the PISCEU policy",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Enforces the required tags and their values. Does not apply to resource groups.",
+    "metadata": {
+      "version": "1.0.1",
+      "category": "Tags"
+    },
+    "policyRule": {
+      "if": {
+          "anyOf": [
+            {
+              "field":"tags['Owner']",
+              "exists":"false"
+            },
+            {
+              "field":"tags['Environment']",
+              "exists":"false"
+            },
+          
+            {
+              "field":"tags['CostCenter']",
+              "exists":"false"
+            },
+            {
+              "field":"tags['BusinessUnit']",
+              "exists":"false"
+            },
+            {
+              "field":"tags['Application']",
+              "exists":"false"
+            },
+          
+            {
+              "field":"tags['ServiceID']",
+              "exists":"false"
+            },
+            {
+              "field":"tags['OS']",
+              "exists":"false"
+            },
+          
+            {
+              "field":"tags['DeliveryStatus']",
+              "exists":"false"
+            },
+          
+            {
+              "field":"tags['Billable']",
+              "exists":"false"
+            },
+            {
+              "field":"tags['MaintenanceWindow']",
+              "exists":"false"
+            },
+            {
+              "field": "tags['Environment']",
+              "notIn": ["development","test","staging","production"]
+            },
+            {
+              "field":"tags['DeliveryStatus']",
+              "notIn": ["built","approved","active","eol","decom"]
+            },
+            {
+              "field": "tags['Billable']",
+              "notIn": ["yes","no"]
+            }
+          ]
+        },
+      "then": {
+          "effect": "audit"
+      }
+    }
+  }
+}
