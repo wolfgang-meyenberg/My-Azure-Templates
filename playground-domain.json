@@ -514,7 +514,10 @@
             "name": "[variables('app server network interface name')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet name'))]",
+                    // the DC nic has a static IP address. We must ensure that that one is created first, otherwise
+                    // the app server nic may be provided with the same address, resulting in failed deployment due to a bad request
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('domain controller network interface name'))]"
             ],
             "properties": {
                 "ipConfigurations": [
