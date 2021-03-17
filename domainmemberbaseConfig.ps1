@@ -1,17 +1,18 @@
-# script parameters:
-#   0   Admin account name
-#   1   Admin account password
-#   2   Domain Name
+param (
+    [parameter(mandatory=$true)] $adminUser,
+    [parameter(mandatory=$true)] $adminPwd,
+    [parameter(mandatory=$true)] $AdDomainName,
+    $delay = 60
+)
 
 Start-Transcript -Path 'D:\DomainMemberBaseconfig.log'
 
 "starting script with arguments:"
-$args
+"adminUser:             $adminUser"
+"AD domain name:        $AdDomainName"
+"delay for domain join: $delay"
 
-$adminUser = $args[0]
-$adminPwd = $args[1]
-$AdDomainName = $args[2]
-
+$subsequentDelay = 60
 
 # disable IE protected mode
 Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}' -Name 'IsInstalled' -Value 0
@@ -22,7 +23,8 @@ Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\ServerMa
 
 # this is run right after the DC was deployed.
 # We may have to wait for some time until that deployment is done and the domain has been successfully created
-Start-Sleep -Seconds 60
+"as DC may not yet be ready, waiting for $delay seconds"
+Start-Sleep -Seconds $delay
 
 # join AD domain
 $DomJoinCreds = New-Object pscredential -ArgumentList ([pscustomobject]@{
@@ -34,8 +36,9 @@ do {
     $ev=@()
     Add-Computer -DomainName $AdDomainName -Credential $DomJoinCreds -ErrorVariable ev
     if ($ev.Count -ne 0) {
-        "DC not yet available, waiting another 60 seconds"
-        Start-Sleep -Seconds 60
+        "DC not yet available, waiting another 2 minutes"
+        "DC still not ready, waiting for another $subsequentDelay seconds"
+        Start-Sleep -Seconds $subsequentDelay
     }    
 } until ($ev.Count -eq 0)
 

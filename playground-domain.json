@@ -2,12 +2,12 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "Landscape": {
+        "Landscape ID": {
             "defaultValue": "wam",
             "type": "string",
             "maxLength": 3,
             "metadata":{
-                "description":"identifies all resources in this testbed"
+                "description":"enter a three-letter ID to make this testbed unique in its resource group. This ID will be included in all resource names"
             }
         },
         "IP subnet": {
@@ -19,35 +19,59 @@
         },
         "Location Code": {
             "defaultValue": "euw",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description":"enter a three-letter region code, e.g. euw ≙ Europe West. The location code will become the first part of all resource names"
+            }
         },
         "VNet": {
             "defaultValue": "MyVNet",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description":"name of the VNet to create"
+            }
         },
         "Subnet": {
             "defaultValue": "sub1",
-            "type": "String"
+            "type": "String",
+            "metadata": {
+                "description":"name of the subnet that will be created inside the new VNet"
+            }
         },
         "storage account": {
             "defaultValue": "mystor1",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description":"name of the storage account, will be prepended by region and testbed IDs"
+            }
         },
-        "domain admin": {
+        "domain admin name": {
             "defaultValue": "domainadmin",
-            "type": "String"
+            "type": "String",
+            "metadata": {
+                "description":"name of the domain admin user account"
+            }
         },
         "domain admin pwd": {
 			"defaultValue": "Ln7r#WcDJtRhARQg",
-            "type": "SecureString"
+            "type": "SecureString",
+            "metadata": {
+                "description":"password of the domain admin user account. DO CHANGE this for production or web-facing environments!"
+            }
         },
-        "local admin": {
+        "local admin name": {
             "defaultValue": "localadmin",
-            "type": "String"
+            "type": "String",
+            "metadata": {
+                "description":"name of the local admin account for the application server"
+            }
         },
         "local admin pwd": {
 			"defaultValue": "Ln7r#WcDJtRhARQg",
-            "type": "SecureString"
+            "type": "SecureString",
+            "metadata": {
+                "description":"password of the local admin user account. DO CHANGE this for production or web-facing environments!"
+            }
         },
         "DC VM name": {
             "defaultValue": "dc01",
@@ -59,7 +83,10 @@
         },
         "domain controller network interface": {
             "defaultValue": "1",
-            "type": "String"
+            "type": "String",
+            "metadata": {
+                "description":"name of the DC's NIC"
+            }
         },
         "App server VM name": {
             "defaultValue": "ap1",
@@ -71,30 +98,40 @@
         },
         "app server network interface": {
             "defaultValue": "1",
-            "type": "String"
+            "type": "String",
+            "metadata": {
+                "description":"name of the app server's NIC"
+            }
         },
         "bastion host": {
             "defaultValue": "ba001",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description":"last part of the bastion host name, the combined length of this and the landscape ID must not exceed 7"
+            }
         },
         "Bastion Public IP Name": {
             "defaultValue": "ba001-1",
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description":"name of the bastion host's public IP address"
+            }
         }
     },
     "variables":{
-        "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape'),parameters('VNet'))]",
-        "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
-        "security group for subnet 0": "[concat(parameters('Location Code'),'-nsg-',parameters('Landscape'),parameters('VNet'),parameters('Subnet'))]",
-        "domain name": "[concat(parameters('Landscape'),'.local')]",
-        "DC name": "[concat(parameters('Location Code'),'-vmdw',parameters('Landscape'),parameters('DC VM name'))]",
+            // all actual resource names will include the region and landscape IDs, so we build them here 
+        "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape ID'),parameters('VNet'))]",
+        "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape ID'),parameters('VNet'),parameters('Subnet'))]",
+        "security group for subnet 0": "[concat(parameters('Location Code'),'-nsg-',parameters('Landscape ID'),parameters('VNet'),parameters('Subnet'))]",
+        "domain name": "[concat(parameters('Landscape ID'),'.local')]",
+        "DC name": "[concat(parameters('Location Code'),'-vmdw',parameters('Landscape ID'),parameters('DC VM name'))]",
         "DC IP address":"[concat(parameters('IP subnet'),'.0.4')]",
-        "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('DC VM name'),parameters('domain controller network interface'))]",
-        "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape'),parameters('App Server VM name'))]",
-        "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape'),parameters('App Server VM name'),parameters('app server network interface'))]",
-        "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape'),parameters('Storage Account'))]",
-        "bastion host name": "[concat(parameters('Location Code'),'-vmsw-',parameters('Landscape'),parameters('Bastion Host'))]",
-        "bastion host public IP address name": "[concat(parameters('Location Code'),'-pip-',parameters('Landscape'),parameters('Bastion Public IP Name'))]"
+        "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape ID'),parameters('DC VM name'),parameters('domain controller network interface'))]",
+        "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape ID'),parameters('App Server VM name'))]",
+        "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape ID'),parameters('App Server VM name'),parameters('app server network interface'))]",
+        "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape ID'),parameters('Storage Account'))]",
+        "bastion host name": "[concat(parameters('Location Code'),'-vmsw-',parameters('Landscape ID'),parameters('Bastion Host'))]",
+        "bastion host public IP address name": "[concat(parameters('Location Code'),'-pip-',parameters('Landscape ID'),parameters('Bastion Public IP Name'))]"
     },
     "resources": [
         {
@@ -378,7 +415,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file dcbaseconfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file dcbaseconfig.ps1', ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
                 }
             }
         },
@@ -431,7 +468,7 @@
                 },
                 "osProfile": {
                     "computerName": "[variables('DC name')]",
-                    "AdminUsername": "[parameters('domain admin')]",
+                    "AdminUsername": "[parameters('domain admin name')]",
                     "AdminPassword": "[parameters('domain admin pwd')]",
                     "windowsConfiguration": {
                         "provisionVMAgent": true,
@@ -474,7 +511,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'))]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin name'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'), ' ', '300')]"
                 }
             }
         },
@@ -588,7 +625,7 @@
                 },
                 "osProfile": {
                     "computerName": "[variables('VM name')]",
-                    "AdminUsername": "[parameters('local admin')]",
+                    "AdminUsername": "[parameters('local admin name')]",
 					"AdminPassword": "[parameters('local admin pwd')]",
                     "windowsConfiguration": {
                         "provisionVMAgent": true,

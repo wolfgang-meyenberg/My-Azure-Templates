@@ -1,16 +1,13 @@
-# script parameters:
-#   0   Admin account name (we don't actually use that in this script, but so the paramer list is the same as for domain members)
-#   1   Admin account password
-#   2   Domain Name
+param (
+    [parameter(mandatory=$true)] $adminPwd,
+    [parameter(mandatory=$true)] $AdDomainName
+)
 
 Start-Transcript -Path 'D:\DcBaseconfig.log'
 
 "starting script with arguments:"
-$args
-
-$adminUser = $args[0]
-$adminPwd = $args[1]
-$AdDomainName = $args[2]
+"admin password: $adminPwd"
+"AD domain name: $AdDomainName"
 
 # disable IE protected mode
 Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}' -Name 'IsInstalled' -Value 0
