@@ -129,6 +129,7 @@
         "domain controller network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape ID'),parameters('DC VM name'),parameters('domain controller network interface'))]",
         "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape ID'),parameters('App Server VM name'))]",
         "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape ID'),parameters('App Server VM name'),parameters('app server network interface'))]",
+        "domainjoin delay": "500",
         "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape ID'),parameters('Storage Account'))]",
         "bastion host name": "[concat(parameters('Location Code'),'-vmsw-',parameters('Landscape ID'),parameters('Bastion Host'))]",
         "bastion host public IP address name": "[concat(parameters('Location Code'),'-pip-',parameters('Landscape ID'),parameters('Bastion Public IP Name'))]"
@@ -511,7 +512,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin name'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'), ' ', '300')]"
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin name'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'), ' ', variables('domainjoin delay'))]"
                 }
             }
         },
