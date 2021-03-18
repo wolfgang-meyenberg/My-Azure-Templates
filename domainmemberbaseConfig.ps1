@@ -48,7 +48,7 @@ Get-NetFirewallRule -DisplayGroup 'Network Discovery'|Set-NetFirewallRule -Profi
 New-Item -Path HKLM:\SYSTEM\CurrentControlSet\Control\Network -Name NewNetworkWindowOff
 
 
-Restart-Computer -Force -Wait
+Restart-Computer -Force
 
 $connectTestResult = Test-NetConnection -ComputerName euwstwamgenstor01.file.core.windows.net -Port 445
 if ($connectTestResult.TcpTestSucceeded) {
