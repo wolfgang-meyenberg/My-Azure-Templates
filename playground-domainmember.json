@@ -1,0 +1,215 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Landscape ID": {
+            "defaultValue": "wam",
+            "type": "string",
+            "maxLength": 3,
+            "metadata":{
+                "description":"enter a three-letter ID to make this testbed unique in its resource group. This ID will be included in all resource names"
+            }
+        },
+        "Location Code": {
+            "defaultValue": "euw",
+            "type": "string",
+            "metadata": {
+                "description":"enter a three-letter region code, e.g. euw ≙ Europe West. The location code will become the first part of all resource names"
+            }
+        },
+        "VNet": {
+            "defaultValue": "MyVNet",
+            "type": "string",
+            "metadata": {
+                "description":"name of the VNet to join"
+            }
+        },
+        "Subnet": {
+            "defaultValue": "sub1",
+            "type": "String",
+            "metadata": {
+                "description":"name of the subnet where the new server will be in"
+            }
+        },
+        "storage account": {
+            "defaultValue": "mystor1",
+            "type": "string",
+            "metadata": {
+                "description":"name of the storage account, will be prepended by region and testbed IDs"
+            }
+        },
+        "domain admin name": {
+            "defaultValue": "domainadmin",
+            "type": "String",
+            "metadata": {
+                "description":"name of the domain admin user account"
+            }
+        },
+        "domain admin pwd": {
+            "type": "SecureString",
+            "metadata": {
+                "description":"password of the domain admin user account. DO CHANGE this for production or web-facing environments!"
+            }
+        },
+        "local admin name": {
+            "defaultValue": "localadmin",
+            "type": "String",
+            "metadata": {
+                "description":"name of the local admin account for the application server"
+            }
+        },
+        "local admin pwd": {
+            "type": "SecureString",
+            "metadata": {
+                "description":"password of the local admin user account. DO CHANGE this for production or web-facing environments!"
+            }
+        },
+        "App server VM name": {
+            "defaultValue": "ap1",
+            "type": "String",
+            "maxLength": 4,
+            "metadata":{
+                "description":"last part of VM name, the combined length of this and the landscape ID must not exceed 7"
+            }
+        },
+        "app server network interface": {
+            "defaultValue": "1",
+            "type": "String",
+            "metadata": {
+                "description":"name of the app server's NIC"
+            }
+        }
+    },
+    "variables":{
+            // all actual resource names will include the region and landscape IDs, so we build them here 
+        "VNet name": "[concat(parameters('Location Code'),'-vnet-',parameters('Landscape ID'),parameters('VNet'))]",
+        "Subnet name": "[concat(parameters('Location Code'),'-snet-',parameters('Landscape ID'),parameters('VNet'),parameters('Subnet'))]",
+        "security group for subnet 0": "[concat(parameters('Location Code'),'-nsg-',parameters('Landscape ID'),parameters('VNet'),parameters('Subnet'))]",
+        "domain name": "[concat(parameters('Landscape ID'),'.local')]",
+        "VM name": "[concat(parameters('Location Code'),'-vmsw',parameters('Landscape ID'),parameters('App Server VM name'))]",
+        "app server network interface name": "[concat(parameters('Location Code'),'-nic-',parameters('Landscape ID'),parameters('App Server VM name'),parameters('app server network interface'))]",
+        "domainjoin delay": "500",
+        "storage account name": "[concat(parameters('Location Code'),'st',parameters('Landscape ID'),parameters('Storage Account'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(variables('VM name'),'/JoinDomainScript')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "dependsOn": [
+                "[variables('VM name')]"
+            ],
+            "apiVersion": "2019-07-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "type": "CustomScriptExtension",
+                "publisher": "Microsoft.Compute",
+                "typeHandlerVersion": "1.10",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://raw.githubusercontent.com/wolfgang-meyenberg/My-Azure-Templates/main/domainmemberbaseConfig.ps1"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute":"[concat('powershell -ExecutionPolicy Unrestricted -file domainmemberbaseConfig.ps1', ' ', parameters('domain admin name'), ' ', parameters('domain admin pwd'), ' ', variables('domain name'), ' ', variables('domainjoin delay'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-04-01",
+            "name": "[variables('app server network interface name')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(variables('app server network interface name'),'-ipcfg')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',  variables('VNet name'), variables('Subnet name'))]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[variables('VM name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('app server network interface name'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "name": "[concat(variables('VM name'), '_OsDisk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"						
+                        },
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(variables('VM name'), '_DataDisk_0')]",
+                            "createOption": "Empty",
+                            "caching": "ReadOnly",
+                            "writeAcceleratorEnabled": false,
+                            "managedDisk": {
+                                "storageAccountType": "Standard_LRS"
+                            },
+                            "diskSizeGB": 32,
+                            "toBeDetached": false
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('VM name')]",
+                    "AdminUsername": "[parameters('local admin name')]",
+					"AdminPassword": "[parameters('local admin pwd')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('app server network interface name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https://', variables('storage account name'), '.blob.core.windows.net/')]"
+                    }
+                }
+            }
+        }
+    ]
+}
